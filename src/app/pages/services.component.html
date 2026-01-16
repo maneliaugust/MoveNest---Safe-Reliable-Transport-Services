@@ -1,0 +1,67 @@
+<section class="services-preview">
+    <div class="container">
+        <h2>Our Services</h2>
+        <p class="section-subtitle">Professional transport solutions tailored to your needs</p>
+
+        <div class="service-grid">
+            <!-- Kids Transport -->
+            <div class="service-card">
+                <h3>Kids Transport</h3>
+                <p>We understand that your children's safety is paramount. Our kids transport service provides:</p>
+                <ul>
+                    <li>Background-checked drivers</li>
+                    <li>Child-safe vehicles</li>
+                    <li>Door-to-door service</li>
+                    <li>Real-time tracking</li>
+                    <li>Regular school runs</li>
+                </ul>
+                <a routerLink="/booking" [queryParams]="{service: 'kids_transport'}" class="btn btn-primary">Book
+                    Now</a>
+            </div>
+
+            <!-- Staff Transport -->
+            <div class="service-card">
+                <h3>Staff Transport</h3>
+                <p>Efficient and reliable corporate transport solutions for your business:</p>
+                <ul>
+                    <li>Scheduled pickups</li>
+                    <li>Multiple route options</li>
+                    <li>Professional service</li>
+                    <li>Corporate billing</li>
+                    <li>Flexible scheduling</li>
+                </ul>
+                <a routerLink="/booking" [queryParams]="{service: 'staff_transport'}" class="btn btn-primary">Book
+                    Now</a>
+            </div>
+
+            <!-- Luggage Transport -->
+            <div class="service-card">
+                <h3>Luggage Transport</h3>
+                <p>Secure and careful handling of your belongings:</p>
+                <ul>
+                    <li>Airport transfers</li>
+                    <li>Moving assistance</li>
+                    <li>Package delivery</li>
+                    <li>Insured transport</li>
+                    <li>Same-day service</li>
+                </ul>
+                <a routerLink="/booking" [queryParams]="{service: 'luggage_transport'}" class="btn btn-primary">Book
+                    Now</a>
+            </div>
+
+            <!-- Car Hire -->
+            <div class="service-card">
+                <h3>Car Hire</h3>
+                <p>Flexible car rental options for any duration:</p>
+                <ul>
+                    <li>Daily/Monthly rentals</li>
+                    <li>Wide range of vehicles</li>
+                    <li>Comprehensive insurance</li>
+                    <li>24/7 assistance</li>
+                    <li>Delivery available</li>
+                </ul>
+                <a routerLink="/booking" [queryParams]="{service: 'car_hire'}" class="btn btn-primary">Book Now</a>
+            </div>
+        </div>
+    </div>
+</section>
