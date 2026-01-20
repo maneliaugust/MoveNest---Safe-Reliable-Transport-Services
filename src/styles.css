@@ -2,8 +2,23 @@
   --primary-color: #0E4D64;
   --accent-color: #FFA233;
   --bg-color: #F9FAFB;
-  --text-color: #333;
+  --card-bg: #FFFFFF;
+  --text-color: #333333;
+  --text-muted: #666666;
+  --border-color: #e0e0e0;
+  --navbar-bg: #FFFFFF;
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+[data-theme='dark'] {
+  --primary-color: #4DB8D9;
+  --accent-color: #FFA233;
+  --bg-color: #121212;
+  --card-bg: #1E1E1E;
+  --text-color: #E0E0E0;
+  --text-muted: #A0A0A0;
+  --border-color: #333333;
+  --navbar-bg: #1A1A1A;
 }
 
 * {
@@ -29,7 +44,9 @@ body {
   padding: 0 2rem;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   color: var(--primary-color);
   margin-bottom: 1rem;
 }

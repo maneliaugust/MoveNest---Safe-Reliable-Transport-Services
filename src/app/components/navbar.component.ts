@@ -1,11 +1,13 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { NgClass } from '@angular/common';
+import { NgClass, CommonModule } from '@angular/common';
+import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
     selector: 'mn-navbar',
     standalone: true,
-    imports: [RouterLink, RouterLinkActive, NgClass],
+    imports: [RouterLink, RouterLinkActive, NgClass, CommonModule],
     template: `
     <nav class="navbar">
         <div class="container">
@@ -16,8 +18,35 @@ import { NgClass } from '@angular/common';
                 <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a></li>
                 <li><a routerLink="/services" routerLinkActive="active">Services</a></li>
                 <li><a routerLink="/fleet" routerLinkActive="active">Fleet</a></li>
+                <li><a routerLink="/quote" routerLinkActive="active">Get Quote</a></li>
                 <li><a routerLink="/booking" routerLinkActive="active">Book Now</a></li>
                 <li><a routerLink="/contact" routerLinkActive="active">Contact</a></li>
+                
+                <!-- Show Login if not authenticated -->
+                <li *ngIf="!isAuthenticated"><a routerLink="/login" routerLinkActive="active" class="login-link">Login</a></li>
+                
+                <!-- Show User Menu if authenticated -->
+                <li *ngIf="isAuthenticated" class="user-menu">
+                    <button class="user-btn" (click)="toggleUserMenu()">
+                        <i class="fa-solid fa-user-circle"></i>
+                        {{ userName }}
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="user-dropdown" [class.show]="userMenuOpen">
+                        <a routerLink="/settings" (click)="userMenuOpen = false">
+                            <i class="fa-solid fa-gear"></i>
+                            Settings
+                        </a>
+                        <a *ngIf="isAdmin" routerLink="/admin" (click)="userMenuOpen = false">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            Admin Dashboard
+                        </a>
+                        <a (click)="logout()" class="logout-item">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            Logout
+                        </a>
+                    </div>
+                </li>
             </ul>
 
             <!-- Mobile Toggle -->
@@ -42,8 +71,10 @@ import { NgClass } from '@angular/common';
                 <li><a routerLink="/" (click)="closeMenu()" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">HOME</a></li>
                 <li><a routerLink="/services" (click)="closeMenu()" routerLinkActive="active">SERVICES</a></li>
                 <li><a routerLink="/fleet" (click)="closeMenu()" routerLinkActive="active">FLEET</a></li>
+                <li><a routerLink="/quote" (click)="closeMenu()" routerLinkActive="active">GET QUOTE</a></li>
                 <li><a routerLink="/booking" (click)="closeMenu()" routerLinkActive="active">BOOK NOW</a></li>
                 <li><a routerLink="/contact" (click)="closeMenu()" routerLinkActive="active">CONTACT</a></li>
+                <li><a routerLink="/login" (click)="closeMenu()" routerLinkActive="active">LOGIN</a></li>
             </ul>
         </div>
     </div>
@@ -53,13 +84,14 @@ import { NgClass } from '@angular/common';
         display: block;
     }
     .navbar {
-        background: white;
+        background: var(--navbar-bg);
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         padding: 1rem 0;
         position: fixed;
         width: 100%;
         top: 0;
         z-index: 1000;
+        transition: background 0.3s;
     }
     .container {
         max-width: 1200px;
@@ -83,7 +115,7 @@ import { NgClass } from '@angular/common';
     }
     .nav-menu a {
         text-decoration: none;
-        color: #333;
+        color: var(--text-color);
         font-weight: 500;
         transition: color 0.3s;
     }
@@ -191,6 +223,93 @@ import { NgClass } from '@angular/common';
         padding-left: 10px;
     }
 
+    /* User Menu */
+    .user-menu {
+        position: relative;
+    }
+
+    .user-btn {
+        background: none;
+        border: none;
+        color: var(--text-color);
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        transition: background 0.3s;
+    }
+
+    .user-btn:hover {
+        background: #f0f0f0;
+    }
+
+    .user-btn i:first-child {
+        font-size: 1.3rem;
+    }
+
+    .user-btn i:last-child {
+        font-size: 0.8rem;
+        transition: transform 0.3s;
+    }
+
+    .user-menu:hover .user-btn i:last-child {
+        transform: rotate(180deg);
+    }
+
+    .user-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: var(--navbar-bg);
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        min-width: 200px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s;
+        margin-top: 0.5rem;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+    }
+
+    .user-dropdown.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .user-dropdown a {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        padding: 1rem 1.2rem;
+        color: var(--text-color);
+        text-decoration: none;
+        transition: background 0.3s;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .user-dropdown a:last-child {
+        border-bottom: none;
+    }
+
+    .user-dropdown a:hover {
+        background: #f8f8f8;
+        color: var(--accent-color);
+    }
+
+    .user-dropdown a.logout-item {
+        color: #dc3545;
+    }
+
+    .user-dropdown a.logout-item:hover {
+        background: #fee;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .desktop-menu {
@@ -202,13 +321,31 @@ import { NgClass } from '@angular/common';
     }
   `]
 })
-export class NavbarComponent {
+export class NavbarComponent implements OnInit {
     isOpen = false;
+    isAuthenticated = false;
+    isAdmin = false;
+    userName = '';
+    userMenuOpen = false;
+
+    constructor(
+        private authService: AuthService,
+        private router: Router
+    ) { }
+
+    ngOnInit() {
+        // Subscribe to auth state changes
+        this.authService.currentUser$.subscribe(user => {
+            this.isAuthenticated = !!user;
+            this.isAdmin = this.authService.isAdmin();
+            this.userName = user?.name || '';
+        });
+    }
 
     toggleMenu() {
         this.isOpen = !this.isOpen;
         if (this.isOpen) {
-            document.body.style.overflow = 'hidden'; // Prevent scrolling when menu is open
+            document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = '';
         }
@@ -217,5 +354,15 @@ export class NavbarComponent {
     closeMenu() {
         this.isOpen = false;
         document.body.style.overflow = '';
+    }
+
+    toggleUserMenu() {
+        this.userMenuOpen = !this.userMenuOpen;
+    }
+
+    logout() {
+        this.authService.logout();
+        this.userMenuOpen = false;
+        this.router.navigate(['/']);
     }
 }

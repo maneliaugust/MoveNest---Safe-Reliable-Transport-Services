@@ -11,6 +11,9 @@ export interface Booking {
     status: 'pending' | 'confirmed' | 'completed';
     paymentMethod?: 'cash' | 'card';
     paymentStatus?: 'unpaid' | 'pending' | 'paid';
+    isMonthlyContract?: boolean;
+    organizationName?: string;
+    contractDuration?: number;
     timestamp: Date;
 }
 

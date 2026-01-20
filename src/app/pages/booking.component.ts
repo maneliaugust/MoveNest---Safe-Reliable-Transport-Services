@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { BookingService } from '../services/booking.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -7,7 +7,7 @@ import { CommonModule } from '@angular/common';
 @Component({
     selector: 'mn-booking',
     standalone: true,
-    imports: [FormsModule, CommonModule],
+    imports: [FormsModule, CommonModule, RouterLink],
     templateUrl: './booking.component.html',
     styles: [`
     .booking {
@@ -86,6 +86,53 @@ import { CommonModule } from '@angular/common';
         margin: 0 auto;
         padding: 0 2rem;
     }
+    .contract-option {
+        padding: 1.5rem;
+        background: #f0f8ff;
+        border-radius: 10px;
+        border: 2px dashed #4a90e2;
+    }
+    .checkbox-wrapper {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.8rem;
+    }
+    .checkbox-wrapper input[type="checkbox"] {
+        width: auto;
+        margin-top: 0.3rem;
+        cursor: pointer;
+    }
+    .checkbox-wrapper label {
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    .contract-info {
+        font-size: 0.85rem;
+        color: #28a745;
+        font-weight: normal;
+    }
+    .contract-details {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #ddd;
+    }
+    .quote-link {
+        text-align: center;
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: #fff3cd;
+        border-radius: 8px;
+    }
+    .quote-link a {
+        color: var(--accent-color);
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .quote-link a:hover {
+        text-decoration: underline;
+    }
     @media (max-width: 768px) {
         .booking-container {
             grid-template-columns: 1fr;
@@ -98,11 +145,13 @@ import { CommonModule } from '@angular/common';
 })
 export class BookingComponent implements OnInit {
     bookingData = {
-        service: 'kids_transport',
+        service: '',
         pickup: '',
         dropoff: '',
         date: '',
-        time: ''
+        time: '',
+        isMonthlyContract: false,
+        organizationName: ''
     };
     submitted = false;
 
@@ -114,8 +163,29 @@ export class BookingComponent implements OnInit {
 
     ngOnInit() {
         this.route.queryParams.subscribe(params => {
+            // Pre-fill service if coming from quote or services page
             if (params['service']) {
                 this.bookingData.service = params['service'];
+            }
+
+            // Pre-fill pickup location from quote
+            if (params['pickup']) {
+                this.bookingData.pickup = params['pickup'];
+            }
+
+            // Pre-fill dropoff location from quote
+            if (params['dropoff']) {
+                this.bookingData.dropoff = params['dropoff'];
+            }
+
+            // Pre-fill monthly contract checkbox from quote
+            if (params['isMonthlyContract']) {
+                this.bookingData.isMonthlyContract = params['isMonthlyContract'] === 'true';
+            }
+
+            // Pre-fill organization name from quote
+            if (params['organizationName']) {
+                this.bookingData.organizationName = params['organizationName'];
             }
         });
     }

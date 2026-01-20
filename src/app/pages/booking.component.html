@@ -6,6 +6,7 @@
                 <div class="form-group">
                     <label for="service">Select Service</label>
                     <select id="service" name="service" [(ngModel)]="bookingData.service">
+                        <option value="">Select a service</option>
                         <option value="kids_transport">Kids Transport</option>
                         <option value="staff_transport">Staff Transport</option>
                         <option value="luggage_transport">Luggage Transport</option>
@@ -34,6 +35,29 @@
                         <input type="time" id="time" name="time" [(ngModel)]="bookingData.time">
                     </div>
                 </div>
+
+                <!-- Monthly Contract Option -->
+                <div class="form-group contract-option">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="monthlyContract" name="isMonthlyContract"
+                            [(ngModel)]="bookingData.isMonthlyContract">
+                        <label for="monthlyContract">
+                            <strong>Monthly Contract</strong>
+                            <span class="contract-info">For schools & companies - Get special rates</span>
+                        </label>
+                    </div>
+
+                    <div *ngIf="bookingData.isMonthlyContract" class="contract-details">
+                        <label for="organizationName">Organization Name</label>
+                        <input type="text" id="organizationName" name="organizationName"
+                            [(ngModel)]="bookingData.organizationName" placeholder="School or Company name">
+                    </div>
+                </div>
+
+                <div class="quote-link">
+                    <p>Not sure about pricing? <a routerLink="/quote">Get an instant quote</a></p>
+                </div>
+
                 <button type="submit" class="btn btn-primary">Submit Booking</button>
                 <p *ngIf="submitted" class="success-msg">Thank you! Your booking request has been sent.</p>
             </form>
