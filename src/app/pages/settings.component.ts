@@ -281,7 +281,7 @@ import { User, SavedAddress } from '../models/user.model';
                                     <span class="status-dot"></span>
                                     Actual Trip Details
                                 </div>
-                                <div class="trip-timer">Est. Time: 25 mins</div>
+                                <div class="trip-timer">Est. Time: {{ illustrativeTime || '---' }}</div>
                             </div>
                             
                             <div class="route-info">
@@ -859,6 +859,7 @@ export class SettingsComponent implements OnInit {
     illustrativePickup = '';
     illustrativeDropoff = '';
     illustrativeKm = 0;
+    illustrativeTime = '';
     isMapVisible = true;
 
     constructor(
@@ -1035,11 +1036,16 @@ export class SettingsComponent implements OnInit {
             const seed = this.illustrativePickup.length + this.illustrativeDropoff.length;
             this.illustrativeKm = (seed * 1.5) % 100 + 5;
 
+            // Calculate estimated time (simulated: ~1.8 mins per km + 5 mins base)
+            const minutes = Math.round(this.illustrativeKm * 1.8 + 5);
+            this.illustrativeTime = `${minutes} mins`;
+
             if (this.isMapVisible) {
                 this.updateMapMarkers();
             }
         } else {
             this.illustrativeKm = 0;
+            this.illustrativeTime = '';
         }
     }
 
