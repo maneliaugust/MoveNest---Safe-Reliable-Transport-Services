@@ -93,6 +93,22 @@ import { RouterLink } from '@angular/router';
         margin: 0 auto;
         padding: 0 2rem;
     }
+
+    @media (max-width: 768px) {
+        .hero {
+            height: auto;
+            min-height: 100vh;
+            padding: 100px 0 60px;
+        }
+        .hero-content h1 {
+            font-size: 2.5rem;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            margin: 1rem 0;
+        }
+    }
   `]
 })
 export class HomeComponent { }

@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { BookingService } from '../services/booking.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -105,7 +106,11 @@ export class BookingComponent implements OnInit {
     };
     submitted = false;
 
-    constructor(private route: ActivatedRoute) { }
+    constructor(
+        private route: ActivatedRoute,
+        private router: Router,
+        private bookingService: BookingService
+    ) { }
 
     ngOnInit() {
         this.route.queryParams.subscribe(params => {
@@ -117,7 +122,15 @@ export class BookingComponent implements OnInit {
 
     onSubmit(event: Event) {
         event.preventDefault();
-        console.log('Booking Data:', this.bookingData);
+
+        const newBooking = this.bookingService.addBooking(this.bookingData);
+
+        console.log('Booking Submitted:', this.bookingData);
         this.submitted = true;
+
+        // Redirect to payment
+        setTimeout(() => {
+            this.router.navigate(['/payment', newBooking.id]);
+        }, 1500);
     }
 }

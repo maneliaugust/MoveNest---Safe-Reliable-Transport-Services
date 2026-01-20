@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { MessageService } from '../services/message.service';
 
 @Component({
     selector: 'mn-contact',
@@ -103,9 +104,24 @@ export class ContactComponent {
     };
     submitted = false;
 
+    constructor(private messageService: MessageService) { }
+
     onSubmit(event: Event) {
         event.preventDefault();
-        console.log('Contact Data:', this.contactData);
+
+        this.messageService.addMessage(this.contactData);
+
+        console.log('Contact Data Submitted:', this.contactData);
         this.submitted = true;
+
+        // Reset form
+        setTimeout(() => {
+            this.submitted = false;
+            this.contactData = {
+                name: '',
+                email: '',
+                message: ''
+            };
+        }, 3000);
     }
 }

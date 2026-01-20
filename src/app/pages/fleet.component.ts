@@ -65,6 +65,17 @@ import { RouterLink } from '@angular/router';
         margin: 0 auto;
         padding: 0 2rem;
     }
+
+    @media (max-width: 768px) {
+        .fleet-showcase {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            padding: 2rem;
+        }
+        .fleet-image {
+            margin-bottom: 1rem;
+        }
+    }
   `]
 })
 export class FleetComponent { }
