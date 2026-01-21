@@ -164,18 +164,23 @@ export class AuthService {
     }
 
     sendResetCode(email: string): { success: boolean; message: string } {
+        console.log('🔐 AuthService: sendResetCode called with email:', email);
         const users = this.getUsers();
         const user = users.find(u => u.email === email);
 
         if (!user) {
+            console.log('❌ AuthService: User not found');
             return { success: false, message: 'Email address not found' };
         }
 
         const code = Math.floor(1000 + Math.random() * 9000).toString();
         this.resetCodes.set(email, code);
+        console.log('✅ AuthService: Generated code:', code, 'for user:', user.name);
 
         // Simulate sending email
+        console.log('⏰ AuthService: Scheduling notification in 1.5 seconds...');
         setTimeout(() => {
+            console.log('📧 AuthService: Calling notificationService.showEmail NOW');
             this.notificationService.showEmail(
                 'New Email: Password Reset Request',
                 `Hi ${user.name},<br><br>Your verification code for MoveNest is: <b>${code}</b><br><br>If you didn't request this, please ignore this email.`

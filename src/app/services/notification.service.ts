@@ -18,10 +18,12 @@ export class NotificationService {
 
     show(notification: Omit<AppNotification, 'id'>) {
         const id = Math.random().toString(36).substr(2, 9);
+        console.log('📧 NotificationService: Showing notification', { ...notification, id });
         this.notificationsSource.next({ ...notification, id });
     }
 
     showEmail(title: string, message: string) {
+        console.log('📧 NotificationService: showEmail called', { title, message });
         this.show({
             type: 'email',
             title,

@@ -34,13 +34,14 @@ import { Subscription } from 'rxjs';
     styles: [`
         .notifications-wrapper {
             position: fixed;
-            top: 20px;
+            top: 80px;
             right: 20px;
-            z-index: 9999;
+            z-index: 999999;
             display: flex;
             flex-direction: column;
             gap: 15px;
             pointer-events: none;
+            max-width: 90vw;
         }
 
         .notification-card {
@@ -133,7 +134,9 @@ export class NotificationComponent implements OnInit, OnDestroy {
     constructor(private notificationService: NotificationService) { }
 
     ngOnInit() {
+        console.log('📧 NotificationComponent: Initialized');
         this.sub = this.notificationService.notifications$.subscribe(note => {
+            console.log('📧 NotificationComponent: Received notification', note);
             this.activeNotifications.push(note);
 
             const duration = note.duration || 5000;
