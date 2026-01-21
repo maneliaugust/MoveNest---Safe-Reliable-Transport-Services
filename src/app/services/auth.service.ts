@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { User, UserRole, AuthSession } from '../models/user.model';
+import { NotificationService } from './notification.service';
 
 @Injectable({
     providedIn: 'root'
@@ -11,9 +12,11 @@ export class AuthService {
 
     private readonly USERS_KEY = 'movenest_users';
     private readonly SESSION_KEY = 'movenest_session';
-    private readonly ADMIN_CODE = 'MOVENEST2026'; // Secret code for admin registration
+    private readonly ADMIN_CODE = 'MOVENEST2026';
 
-    constructor() {
+    private resetCodes: Map<string, string> = new Map();
+
+    constructor(private notificationService: NotificationService) {
         this.loadSession();
     }
 
@@ -143,6 +146,47 @@ export class AuthService {
         }
 
         return true;
+    }
+
+    resetPassword(email: string, newPassword: string): { success: boolean; message: string } {
+        const users = this.getUsers();
+        const userIndex = users.findIndex(u => u.email === email);
+
+        if (userIndex === -1) {
+            return { success: false, message: 'Email address not found' };
+        }
+
+        users[userIndex].password = newPassword;
+        this.saveUsers(users);
+        this.resetCodes.delete(email);
+
+        return { success: true, message: 'Password has been reset successfully' };
+    }
+
+    sendResetCode(email: string): { success: boolean; message: string } {
+        const users = this.getUsers();
+        const user = users.find(u => u.email === email);
+
+        if (!user) {
+            return { success: false, message: 'Email address not found' };
+        }
+
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        this.resetCodes.set(email, code);
+
+        // Simulate sending email
+        setTimeout(() => {
+            this.notificationService.showEmail(
+                'New Email: Password Reset Request',
+                `Hi ${user.name},<br><br>Your verification code for MoveNest is: <b>${code}</b><br><br>If you didn't request this, please ignore this email.`
+            );
+        }, 1500);
+
+        return { success: true, message: 'Verification code sent to your email' };
+    }
+
+    verifyResetCode(email: string, code: string): boolean {
+        return this.resetCodes.get(email) === code;
     }
 
     private generateId(): string {

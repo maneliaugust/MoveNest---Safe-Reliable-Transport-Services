@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
-declare var L: any;
+declare var google: any;
 import { AuthService } from '../services/auth.service';
 import { SettingsService, AppSettings } from '../services/settings.service';
 import { User, SavedAddress } from '../models/user.model';
@@ -306,11 +306,16 @@ import { User, SavedAddress } from '../models/user.model';
                             
                             <div class="nav-metrics">
                                 <div class="metric">
-                                    <i class="fa-solid fa-arrows-left-right"></i>
                                     <div class="metric-val">
                                         <label>Distance</label>
                                         <strong>{{ illustrativeKm > 0 ? formatTripDistance(illustrativeKm) : '---' }}</strong>
                                     </div>
+                                </div>
+                                <div class="metric" *ngIf="illustrativePickup && illustrativeDropoff">
+                                    <a [href]="'https://www.google.com/maps/dir/' + illustrativePickup + '/' + illustrativeDropoff" target="_blank" class="maps-link">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        Open in Google Maps
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -800,6 +805,22 @@ import { User, SavedAddress } from '../models/user.model';
         cursor: not-allowed;
     }
 
+    .maps-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--accent-color);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: opacity 0.3s;
+    }
+
+    .maps-link:hover {
+        opacity: 0.8;
+        text-decoration: underline;
+    }
+
     .test-locations-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -838,6 +859,8 @@ export class SettingsComponent implements OnInit {
     isAdmin = false;
     currentUser: any = null;
     private map: any;
+    private markers: any[] = [];
+    private polyline: any;
 
     profileForm: FormGroup;
     businessForm: FormGroup;
@@ -861,6 +884,22 @@ export class SettingsComponent implements OnInit {
     illustrativeKm = 0;
     illustrativeTime = '';
     isMapVisible = true;
+
+    // Realistic South African City Coordinates
+    private readonly CITY_COORDS: { [key: string]: [number, number] } = {
+        'johannesburg': [-26.2041, 28.0473],
+        'pretoria': [-25.7479, 28.1878],
+        'durban': [-29.8587, 31.0218],
+        'cape town': [-33.9249, 18.4232],
+        'port elizabeth': [-33.9608, 25.6022],
+        'bloemfontein': [-29.1181, 26.2231],
+        'sandton': [-26.1076, 28.0567],
+        'midrand': [-25.9992, 28.1262],
+        'centurion': [-25.8640, 28.1858],
+        'east london': [-33.0292, 27.8546],
+        'nelspruit': [-25.4753, 30.9694],
+        'polokwane': [-23.8962, 29.4486]
+    };
 
     constructor(
         private fb: FormBuilder,
@@ -1029,18 +1068,87 @@ export class SettingsComponent implements OnInit {
         return this.settingsService.formatDistance(km);
     }
 
+    private getCoordinates(query: string): [number, number] {
+        const normalized = query.toLowerCase().trim();
+
+        // Exact match in dictionary
+        if (this.CITY_COORDS[normalized]) {
+            return this.CITY_COORDS[normalized];
+        }
+
+        // Partial match
+        for (const city in this.CITY_COORDS) {
+            if (normalized.includes(city)) {
+                return this.CITY_COORDS[city];
+            }
+        }
+
+        // Fallback: Deterministic shift from a base point
+        const getShift = (str: string) => {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return (hash % 100) / 500;
+        };
+
+        const baseLat = -25.9278;
+        const baseLng = 28.1223;
+        return [
+            baseLat + getShift(query),
+            baseLng + getShift(query.split('').reverse().join(''))
+        ];
+    }
+
+    private calculateHaversineDistance(coords1: [number, number], coords2: [number, number]): number {
+        const R = 6371; // Earth's radius in km
+        const dLat = (coords2[0] - coords1[0]) * Math.PI / 180;
+        const dLon = (coords2[1] - coords1[1]) * Math.PI / 180;
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(coords1[0] * Math.PI / 180) * Math.cos(coords2[0] * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
     calculateDistance() {
         if (this.illustrativePickup && this.illustrativeDropoff) {
-            // Simulated distance calculation for demonstration
-            // Using a simple algorithm based on string lengths to make it feel reactive
-            const seed = this.illustrativePickup.length + this.illustrativeDropoff.length;
-            this.illustrativeKm = (seed * 1.5) % 100 + 5;
+            const pickupCoords = this.getCoordinates(this.illustrativePickup);
+            const dropoffCoords = this.getCoordinates(this.illustrativeDropoff);
 
-            // Calculate estimated time (simulated: ~1.8 mins per km + 5 mins base)
-            const minutes = Math.round(this.illustrativeKm * 1.8 + 5);
-            this.illustrativeTime = `${minutes} mins`;
+            let km = this.calculateHaversineDistance(pickupCoords, dropoffCoords);
 
-            if (this.isMapVisible) {
+            // Realism: Road distance is usually 25% - 40% more than straight line
+            const roadFactor = km > 100 ? 1.25 : 1.35;
+            this.illustrativeKm = parseFloat((km * roadFactor).toFixed(1));
+
+            // Refined Time Logic: Standard highway speeds for long distance
+            // Johannesburg to Durban is ~625km (road dist), target ~6 hours
+            let avgSpeed = 60; // km/h for local
+            if (this.illustrativeKm > 400) avgSpeed = 112; // Optimized for 6h @ 625km
+            else if (this.illustrativeKm > 100) avgSpeed = 90;
+            else if (this.illustrativeKm > 20) avgSpeed = 75;
+
+            const travelHours = this.illustrativeKm / avgSpeed;
+            const baseMinutes = travelHours * 60;
+
+            // Add padding for traffic and stops
+            let trafficPadding = 10;
+            if (this.illustrativeKm > 400) trafficPadding = 25;
+            else if (this.illustrativeKm > 100) trafficPadding = 20;
+
+            const totalMinutes = Math.round(baseMinutes + trafficPadding);
+
+            if (totalMinutes > 60) {
+                const hours = Math.floor(totalMinutes / 60);
+                const mins = totalMinutes % 60;
+                this.illustrativeTime = `${hours}h ${mins}m`;
+            } else {
+                this.illustrativeTime = `${totalMinutes} mins`;
+            }
+
+            if (this.isMapVisible && this.map) {
                 this.updateMapMarkers();
             }
         } else {
@@ -1052,89 +1160,129 @@ export class SettingsComponent implements OnInit {
     private updateMapMarkers() {
         if (!this.map || !this.illustrativePickup || !this.illustrativeDropoff) return;
 
-        // Clear existing markers and polylines
-        this.map.eachLayer((layer: any) => {
-            if (layer instanceof L.Marker || layer instanceof L.Polyline) {
-                this.map.removeLayer(layer);
+        // Clear existing markers
+        this.markers.forEach(marker => marker.setMap(null));
+        this.markers = [];
+
+        // Clear existing polyline
+        if (this.polyline) {
+            this.polyline.setMap(null);
+        }
+
+        const pickup: [number, number] = this.getCoordinates(this.illustrativePickup);
+        const dropoff: [number, number] = this.getCoordinates(this.illustrativeDropoff);
+
+        const pickupMarker = new google.maps.Marker({
+            position: { lat: pickup[0], lng: pickup[1] },
+            map: this.map,
+            title: `Pickup: ${this.illustrativePickup}`,
+            icon: {
+                path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+                scale: 5,
+                fillColor: '#ff6b35',
+                fillOpacity: 1,
+                strokeWeight: 2,
+                strokeColor: '#fff'
             }
         });
 
-        // Generate deterministic coordinates based on input strings
-        // This is a simulation since we don't have a real geocoder.
-        // We'll use Pretoria/Sandton as base and shift them slightly.
-        const getShift = (str: string) => {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        const dropoffMarker = new google.maps.Marker({
+            position: { lat: dropoff[0], lng: dropoff[1] },
+            map: this.map,
+            title: `Drop-off: ${this.illustrativeDropoff}`,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 7,
+                fillColor: '#4ade80',
+                fillOpacity: 1,
+                strokeWeight: 2,
+                strokeColor: '#fff'
             }
-            return (hash % 100) / 1000;
-        };
-
-        const pickupLat = -25.7479 + getShift(this.illustrativePickup);
-        const pickupLng = 28.1878 + getShift(this.illustrativePickup.split('').reverse().join(''));
-        const dropoffLat = -26.1076 + getShift(this.illustrativeDropoff);
-        const dropoffLng = 28.0567 + getShift(this.illustrativeDropoff.split('').reverse().join(''));
-
-        const pickup: [number, number] = [pickupLat, pickupLng];
-        const dropoff: [number, number] = [dropoffLat, dropoffLng];
-
-        const pickupIcon = L.divIcon({
-            html: '<i class="fa-solid fa-location-dot" style="color: #ff6b35; font-size: 24px;"></i>',
-            className: 'custom-div-icon',
-            iconSize: [24, 24],
-            iconAnchor: [12, 24]
         });
 
-        const dropoffIcon = L.divIcon({
-            html: '<i class="fa-solid fa-flag-checkered" style="color: #4ade80; font-size: 24px;"></i>',
-            className: 'custom-div-icon',
-            iconSize: [24, 24],
-            iconAnchor: [12, 24]
+        this.markers.push(pickupMarker, dropoffMarker);
+
+        this.polyline = new google.maps.Polyline({
+            path: [
+                { lat: pickup[0], lng: pickup[1] },
+                { lat: dropoff[0], lng: dropoff[1] }
+            ],
+            geodesic: true,
+            strokeColor: '#ff6b35',
+            strokeOpacity: 1.0,
+            strokeWeight: 3,
+            map: this.map
         });
 
-        L.marker(pickup, { icon: pickupIcon }).addTo(this.map).bindPopup(`Pickup: ${this.illustrativePickup}`);
-        L.marker(dropoff, { icon: dropoffIcon }).addTo(this.map).bindPopup(`Drop-off: ${this.illustrativeDropoff}`);
-
-        const polyline = L.polyline([pickup, dropoff], { color: '#ff6b35', dashArray: '5, 10' }).addTo(this.map);
-        this.map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend({ lat: pickup[0], lng: pickup[1] });
+        bounds.extend({ lat: dropoff[0], lng: dropoff[1] });
+        this.map.fitBounds(bounds);
     }
 
     private initMap() {
-        if (this.map) {
-            this.map.remove();
+        if (typeof google === 'undefined') {
+            console.warn('Google Maps API not loaded yet');
+            return;
         }
 
-        // Pretoria Central coords: -25.7479, 28.1878
-        // Sandton City coords: -26.1076, 28.0567
-        const pickup = [-25.7479, 28.1878];
-        const dropoff = [-26.1076, 28.0567];
+        const mapElement = document.getElementById('map');
+        if (!mapElement) return;
 
-        this.map = L.map('map').setView([-25.9278, 28.1223], 10);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(this.map);
-
-        const pickupIcon = L.divIcon({
-            html: '<i class="fa-solid fa-location-dot" style="color: #ff6b35; font-size: 24px;"></i>',
-            className: 'custom-div-icon',
-            iconSize: [24, 24],
-            iconAnchor: [12, 24]
+        this.map = new google.maps.Map(mapElement, {
+            center: { lat: -25.9278, lng: 28.1223 },
+            zoom: 10,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+            styles: [
+                {
+                    "featureType": "all",
+                    "elementType": "labels.text.fill",
+                    "stylers": [{ "color": "#7c93a3" }, { "lightness": "-10" }]
+                }
+            ]
         });
 
-        const dropoffIcon = L.divIcon({
-            html: '<i class="fa-solid fa-flag-checkered" style="color: #4ade80; font-size: 24px;"></i>',
-            className: 'custom-div-icon',
-            iconSize: [24, 24],
-            iconAnchor: [12, 24]
-        });
+        // If we already have illustrative locations, show them immediately
+        if (this.illustrativePickup && this.illustrativeDropoff) {
+            this.updateMapMarkers();
+        } else {
+            // Default view markers (Pretoria/Sandton)
+            const pickup: [number, number] = [-25.7479, 28.1878];
+            const dropoff: [number, number] = [-26.1076, 28.0567];
 
-        L.marker(pickup, { icon: pickupIcon }).addTo(this.map).bindPopup('Pickup: Pretoria Central');
-        L.marker(dropoff, { icon: dropoffIcon }).addTo(this.map).bindPopup('Drop-off: Sandton City');
+            const pickupMarker = new google.maps.Marker({
+                position: { lat: pickup[0], lng: pickup[1] },
+                map: this.map,
+                title: 'Default Pickup: Pretoria'
+            });
 
-        // Draw line between points
-        const polyline = L.polyline([pickup, dropoff], { color: '#ff6b35', dashArray: '5, 10' }).addTo(this.map);
-        this.map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+            const dropoffMarker = new google.maps.Marker({
+                position: { lat: dropoff[0], lng: dropoff[1] },
+                map: this.map,
+                title: 'Default Drop-off: Sandton'
+            });
+
+            this.markers.push(pickupMarker, dropoffMarker);
+
+            this.polyline = new google.maps.Polyline({
+                path: [
+                    { lat: pickup[0], lng: pickup[1] },
+                    { lat: dropoff[0], lng: dropoff[1] }
+                ],
+                geodesic: true,
+                strokeColor: '#ff6b35',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                map: this.map
+            });
+
+            const bounds = new google.maps.LatLngBounds();
+            bounds.extend({ lat: pickup[0], lng: pickup[1] });
+            bounds.extend({ lat: dropoff[0], lng: dropoff[1] });
+            this.map.fitBounds(bounds);
+        }
     }
 
     addAddress() {

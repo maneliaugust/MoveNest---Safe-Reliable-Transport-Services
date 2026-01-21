@@ -17,7 +17,7 @@ import { AuthService } from '../services/auth.service';
                     <p>Login to your MoveNest account</p>
                 </div>
 
-                <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+                <form *ngIf="!forgotPasswordMode" [formGroup]="loginForm" (ngSubmit)="onSubmit()">
                     <div class="form-group">
                         <label for="email">Email Address</label>
                         <input 
@@ -32,7 +32,10 @@ import { AuthService } from '../services/auth.service';
                     </div>
 
                     <div class="form-group">
-                        <label for="password">Password</label>
+                        <div class="label-wrapper">
+                            <label for="password">Password</label>
+                            <a href="javascript:void(0)" class="forgot-link" (click)="toggleForgotPassword(true)">Forgot Password?</a>
+                        </div>
                         <input 
                             type="password" 
                             id="password" 
@@ -44,7 +47,7 @@ import { AuthService } from '../services/auth.service';
                         </span>
                     </div>
 
-                    <div class="error-banner" *ngIf="errorMessage">
+                    <div class="error-banner" *ngIf="errorMessage && !forgotPasswordMode">
                         <i class="fa-solid fa-circle-exclamation"></i>
                         {{ errorMessage }}
                     </div>
@@ -55,7 +58,100 @@ import { AuthService } from '../services/auth.service';
                     </button>
                 </form>
 
-                <div class="auth-footer">
+                <!-- Forgot Password Flow -->
+                <div *ngIf="forgotPasswordMode" class="forgot-password-flow">
+                    <!-- Step 1: Email Verification -->
+                    <div *ngIf="forgotPasswordStep === 'email'" class="step-container">
+                        <h2>Reset Password</h2>
+                        <p>Enter your email to verify your account</p>
+                        
+                        <form [formGroup]="forgotPasswordForm" (ngSubmit)="onVerifyEmail()">
+                            <div class="form-group">
+                                <label>Email Address</label>
+                                <input type="email" formControlName="email" placeholder="registered@email.com">
+                            </div>
+
+                            <div class="error-banner" *ngIf="forgotPasswordError">
+                                <i class="fa-solid fa-circle-exclamation"></i>
+                                {{ forgotPasswordError }}
+                            </div>
+
+                            <button type="submit" class="btn-primary" [disabled]="forgotPasswordForm.invalid || loading">
+                                Continue
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Step 2: Verification Code -->
+                    <div *ngIf="forgotPasswordStep === 'code'" class="step-container">
+                        <h2>Check Your Email</h2>
+                        <p>We've sent a 4-digit code to <strong>{{ targetEmail }}</strong></p>
+                        
+                        <form [formGroup]="verificationCodeForm" (ngSubmit)="onVerifyCode()">
+                            <div class="form-group">
+                                <label>Verification Code</label>
+                                <div class="code-inputs">
+                                    <input type="text" formControlName="code" maxlength="4" placeholder="0000" class="code-input">
+                                </div>
+                            </div>
+
+                            <div class="error-banner" *ngIf="forgotPasswordError">
+                                <i class="fa-solid fa-circle-exclamation"></i>
+                                {{ forgotPasswordError }}
+                            </div>
+
+                            <button type="submit" class="btn-primary" [disabled]="verificationCodeForm.invalid || loading">
+                                Verify Code
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Step 3: New Password -->
+                    <div *ngIf="forgotPasswordStep === 'new-password'" class="step-container">
+                        <h2>Create New Password</h2>
+                        <p>Choose a secure password for your account</p>
+                        
+                        <form [formGroup]="resetPasswordForm" (ngSubmit)="onResetPassword()">
+                            <div class="form-group">
+                                <label>New Password</label>
+                                <input type="password" formControlName="newPassword" placeholder="Minimum 6 characters">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Confirm Password</label>
+                                <input type="password" formControlName="confirmPassword" placeholder="Confirm your password">
+                            </div>
+
+                            <div class="error-banner" *ngIf="resetError">
+                                <i class="fa-solid fa-circle-exclamation"></i>
+                                {{ resetError }}
+                            </div>
+
+                            <button type="submit" class="btn-primary" [disabled]="resetPasswordForm.invalid || loading">
+                                Reset Password
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Step 3: Success -->
+                    <div *ngIf="forgotPasswordStep === 'success'" class="step-container success-step">
+                        <div class="success-icon">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <h2>Password Reset!</h2>
+                        <p>Your password has been successfully updated. You can now login with your new password.</p>
+                        
+                        <button class="btn-primary" (click)="toggleForgotPassword(false)">
+                            Back to Login
+                        </button>
+                    </div>
+
+                    <a *ngIf="forgotPasswordStep !== 'success'" href="javascript:void(0)" class="back-link" (click)="toggleForgotPassword(false)">
+                        <i class="fa-solid fa-arrow-left"></i> Back to Login
+                    </a>
+                </div>
+
+                <div class="auth-footer" *ngIf="!forgotPasswordMode">
                     <p>Don't have an account? <a routerLink="/signup">Sign up</a></p>
                 </div>
             </div>
@@ -110,6 +206,28 @@ import { AuthService } from '../services/auth.service';
         font-weight: 600;
         color: #333;
         font-size: 0.95rem;
+    }
+
+    .label-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .label-wrapper label {
+        margin-bottom: 0;
+    }
+
+    .forgot-link {
+        font-size: 0.85rem;
+        color: var(--accent-color);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .forgot-link:hover {
+        text-decoration: underline;
     }
 
     input {
@@ -180,6 +298,51 @@ import { AuthService } from '../services/auth.service';
         color: #666;
     }
 
+    .forgot-password-flow h2 {
+        color: var(--primary-color);
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    .forgot-password-flow p {
+        color: #666;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .back-link {
+        display: block;
+        text-align: center;
+        margin-top: 1.5rem;
+        color: #666;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .back-link:hover {
+        color: var(--primary-color);
+    }
+
+    .success-step {
+        text-align: center;
+    }
+
+    .success-icon {
+        font-size: 4rem;
+        color: #28a745;
+        margin-bottom: 1.5rem;
+    }
+
+    .code-input {
+        letter-spacing: 0.5rem;
+        text-align: center;
+        font-size: 1.5rem !important;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
     .auth-footer a {
         color: var(--accent-color);
         text-decoration: none;
@@ -203,8 +366,18 @@ import { AuthService } from '../services/auth.service';
 })
 export class LoginComponent {
     loginForm: FormGroup;
+    forgotPasswordForm: FormGroup;
+    verificationCodeForm: FormGroup;
+    resetPasswordForm: FormGroup;
     loading = false;
     errorMessage = '';
+
+    // Forgot Password State
+    forgotPasswordMode = false;
+    forgotPasswordStep: 'email' | 'code' | 'new-password' | 'success' = 'email';
+    forgotPasswordError = '';
+    resetError = '';
+    targetEmail = '';
 
     constructor(
         private fb: FormBuilder,
@@ -215,6 +388,25 @@ export class LoginComponent {
             email: ['', [Validators.required, Validators.email]],
             password: ['', Validators.required]
         });
+
+        this.forgotPasswordForm = this.fb.group({
+            email: ['', [Validators.required, Validators.email]]
+        });
+
+        this.verificationCodeForm = this.fb.group({
+            code: ['', [Validators.required, Validators.pattern('^[0-9]{4}$')]]
+        });
+
+        this.resetPasswordForm = this.fb.group({
+            newPassword: ['', [Validators.required, Validators.minLength(6)]],
+            confirmPassword: ['', [Validators.required]]
+        }, { validator: this.passwordMatcher });
+    }
+
+    passwordMatcher(group: FormGroup) {
+        const password = group.get('newPassword')?.value;
+        const confirm = group.get('confirmPassword')?.value;
+        return password === confirm ? null : { mismatch: true };
     }
 
     isFieldInvalid(field: string): boolean {
@@ -243,5 +435,75 @@ export class LoginComponent {
         } else {
             this.errorMessage = result.message;
         }
+    }
+
+    toggleForgotPassword(show: boolean) {
+        this.forgotPasswordMode = show;
+        this.forgotPasswordStep = 'email';
+        this.forgotPasswordError = '';
+        this.resetError = '';
+        this.errorMessage = '';
+        if (!show) {
+            this.forgotPasswordForm.reset();
+            this.resetPasswordForm.reset();
+        }
+    }
+
+    onVerifyEmail() {
+        if (this.forgotPasswordForm.invalid) return;
+
+        this.loading = true;
+        this.forgotPasswordError = '';
+
+        const email = this.forgotPasswordForm.value.email;
+        const result = this.authService.sendResetCode(email);
+
+        setTimeout(() => {
+            this.loading = false;
+            if (result.success) {
+                this.targetEmail = email;
+                this.forgotPasswordStep = 'code';
+            } else {
+                this.forgotPasswordError = result.message;
+            }
+        }, 800);
+    }
+
+    onVerifyCode() {
+        if (this.verificationCodeForm.invalid) return;
+
+        this.loading = true;
+        this.forgotPasswordError = '';
+
+        const code = this.verificationCodeForm.value.code;
+        const isValid = this.authService.verifyResetCode(this.targetEmail, code);
+
+        setTimeout(() => {
+            this.loading = false;
+            if (isValid) {
+                this.forgotPasswordStep = 'new-password';
+            } else {
+                this.forgotPasswordError = 'Invalid verification code';
+            }
+        }, 800);
+    }
+
+    onResetPassword() {
+        if (this.resetPasswordForm.invalid) return;
+
+        this.loading = true;
+        this.resetError = '';
+
+        const newPassword = this.resetPasswordForm.value.newPassword;
+        const result = this.authService.resetPassword(this.targetEmail, newPassword);
+
+        setTimeout(() => {
+            this.loading = false;
+            if (result.success) {
+                this.forgotPasswordStep = 'success';
+            } else {
+                this.resetError = result.message;
+            }
+        }, 800);
     }
 }
