@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
-declare var google: any;
+import * as L from 'leaflet';
 import { AuthService } from '../services/auth.service';
 import { SettingsService, AppSettings } from '../services/settings.service';
 import { User, SavedAddress } from '../models/user.model';
@@ -1161,88 +1161,69 @@ export class SettingsComponent implements OnInit {
         if (!this.map || !this.illustrativePickup || !this.illustrativeDropoff) return;
 
         // Clear existing markers
-        this.markers.forEach(marker => marker.setMap(null));
+        this.markers.forEach(marker => this.map.removeLayer(marker));
         this.markers = [];
 
         // Clear existing polyline
         if (this.polyline) {
-            this.polyline.setMap(null);
+            this.map.removeLayer(this.polyline);
         }
 
         const pickup: [number, number] = this.getCoordinates(this.illustrativePickup);
         const dropoff: [number, number] = this.getCoordinates(this.illustrativeDropoff);
 
-        const pickupMarker = new google.maps.Marker({
-            position: { lat: pickup[0], lng: pickup[1] },
-            map: this.map,
-            title: `Pickup: ${this.illustrativePickup}`,
-            icon: {
-                path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-                scale: 5,
-                fillColor: '#ff6b35',
-                fillOpacity: 1,
-                strokeWeight: 2,
-                strokeColor: '#fff'
-            }
-        });
+        const pickupMarker = L.marker(pickup).addTo(this.map)
+            .bindPopup(`<b>Pickup:</b> ${this.illustrativePickup}`);
 
-        const dropoffMarker = new google.maps.Marker({
-            position: { lat: dropoff[0], lng: dropoff[1] },
-            map: this.map,
-            title: `Drop-off: ${this.illustrativeDropoff}`,
-            icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 7,
-                fillColor: '#4ade80',
-                fillOpacity: 1,
-                strokeWeight: 2,
-                strokeColor: '#fff'
-            }
-        });
+        const dropoffMarker = L.marker(dropoff).addTo(this.map)
+            .bindPopup(`<b>Drop-off:</b> ${this.illustrativeDropoff}`);
 
         this.markers.push(pickupMarker, dropoffMarker);
 
-        this.polyline = new google.maps.Polyline({
-            path: [
-                { lat: pickup[0], lng: pickup[1] },
-                { lat: dropoff[0], lng: dropoff[1] }
-            ],
-            geodesic: true,
-            strokeColor: '#ff6b35',
-            strokeOpacity: 1.0,
-            strokeWeight: 3,
-            map: this.map
-        });
+        this.polyline = L.polyline([pickup, dropoff], {
+            color: '#ff6b35',
+            weight: 3,
+            opacity: 1
+        }).addTo(this.map);
 
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend({ lat: pickup[0], lng: pickup[1] });
-        bounds.extend({ lat: dropoff[0], lng: dropoff[1] });
-        this.map.fitBounds(bounds);
+        this.map.fitBounds(this.polyline.getBounds(), { padding: [50, 50] });
     }
 
     private initMap() {
-        if (typeof google === 'undefined') {
-            console.warn('Google Maps API not loaded yet');
+        // Check for map container first
+        const mapElement = document.getElementById('map');
+        if (!mapElement) {
+            console.log('Map container not found, skipping init');
             return;
         }
 
-        const mapElement = document.getElementById('map');
-        if (!mapElement) return;
+        // Cleanup existing map if necessary
+        if (this.map) {
+            this.map.remove();
+            this.map = null;
+        }
 
-        this.map = new google.maps.Map(mapElement, {
-            center: { lat: -25.9278, lng: 28.1223 },
-            zoom: 10,
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: false,
-            styles: [
-                {
-                    "featureType": "all",
-                    "elementType": "labels.text.fill",
-                    "stylers": [{ "color": "#7c93a3" }, { "lightness": "-10" }]
-                }
-            ]
+        this.map = L.map('map').setView([-25.9278, 28.1223], 10);
+
+        // Fix marker icon issue with Webpack/Angular
+        const defaultIcon = L.icon({
+            iconUrl: 'assets/marker-icon.png',
+            shadowUrl: 'assets/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
         });
+        L.Marker.prototype.options.icon = defaultIcon;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(this.map);
+
+        // Fix for tiles not loading in tabbed interface
+        setTimeout(() => {
+            this.map.invalidateSize();
+        }, 100);
 
         // If we already have illustrative locations, show them immediately
         if (this.illustrativePickup && this.illustrativeDropoff) {
@@ -1252,36 +1233,21 @@ export class SettingsComponent implements OnInit {
             const pickup: [number, number] = [-25.7479, 28.1878];
             const dropoff: [number, number] = [-26.1076, 28.0567];
 
-            const pickupMarker = new google.maps.Marker({
-                position: { lat: pickup[0], lng: pickup[1] },
-                map: this.map,
-                title: 'Default Pickup: Pretoria'
-            });
+            const pickupMarker = L.marker(pickup).addTo(this.map)
+                .bindPopup('Default Pickup: Pretoria');
 
-            const dropoffMarker = new google.maps.Marker({
-                position: { lat: dropoff[0], lng: dropoff[1] },
-                map: this.map,
-                title: 'Default Drop-off: Sandton'
-            });
+            const dropoffMarker = L.marker(dropoff).addTo(this.map)
+                .bindPopup('Default Drop-off: Sandton');
 
             this.markers.push(pickupMarker, dropoffMarker);
 
-            this.polyline = new google.maps.Polyline({
-                path: [
-                    { lat: pickup[0], lng: pickup[1] },
-                    { lat: dropoff[0], lng: dropoff[1] }
-                ],
-                geodesic: true,
-                strokeColor: '#ff6b35',
-                strokeOpacity: 0.8,
-                strokeWeight: 2,
-                map: this.map
-            });
+            this.polyline = L.polyline([pickup, dropoff], {
+                color: '#ff6b35',
+                weight: 2,
+                opacity: 0.8
+            }).addTo(this.map);
 
-            const bounds = new google.maps.LatLngBounds();
-            bounds.extend({ lat: pickup[0], lng: pickup[1] });
-            bounds.extend({ lat: dropoff[0], lng: dropoff[1] });
-            this.map.fitBounds(bounds);
+            this.map.fitBounds(this.polyline.getBounds(), { padding: [50, 50] });
         }
     }
 

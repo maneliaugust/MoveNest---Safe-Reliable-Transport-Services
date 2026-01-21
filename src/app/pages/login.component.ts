@@ -456,17 +456,22 @@ export class LoginComponent {
         this.forgotPasswordError = '';
 
         const email = this.forgotPasswordForm.value.email;
-        const result = this.authService.sendResetCode(email);
 
-        setTimeout(() => {
-            this.loading = false;
-            if (result.success) {
-                this.targetEmail = email;
-                this.forgotPasswordStep = 'code';
-            } else {
-                this.forgotPasswordError = result.message;
+        this.authService.sendResetCode(email).subscribe({
+            next: (result) => {
+                this.loading = false;
+                if (result.success) {
+                    this.targetEmail = email;
+                    this.forgotPasswordStep = 'code';
+                } else {
+                    this.forgotPasswordError = result.message;
+                }
+            },
+            error: () => {
+                this.loading = false;
+                this.forgotPasswordError = 'Failed to connect to server';
             }
-        }, 800);
+        });
     }
 
     onVerifyCode() {
@@ -476,16 +481,15 @@ export class LoginComponent {
         this.forgotPasswordError = '';
 
         const code = this.verificationCodeForm.value.code;
-        const isValid = this.authService.verifyResetCode(this.targetEmail, code);
 
-        setTimeout(() => {
+        this.authService.verifyResetCode(this.targetEmail, code).subscribe(isValid => {
             this.loading = false;
             if (isValid) {
                 this.forgotPasswordStep = 'new-password';
             } else {
                 this.forgotPasswordError = 'Invalid verification code';
             }
-        }, 800);
+        });
     }
 
     onResetPassword() {

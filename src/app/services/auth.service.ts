@@ -1,5 +1,7 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, of, timer } from 'rxjs';
+import { catchError, map, tap, delay } from 'rxjs/operators';
 import { User, UserRole, AuthSession } from '../models/user.model';
 import { NotificationService } from './notification.service';
 
@@ -14,9 +16,13 @@ export class AuthService {
     private readonly SESSION_KEY = 'movenest_session';
     private readonly ADMIN_CODE = 'MOVENEST2026';
 
+    private readonly API_URL = 'http://localhost:3000/api/auth';
     private resetCodes: Map<string, string> = new Map();
 
-    constructor(private notificationService: NotificationService) {
+    constructor(
+        private notificationService: NotificationService,
+        private http: HttpClient
+    ) {
         this.loadSession();
     }
 
@@ -163,35 +169,36 @@ export class AuthService {
         return { success: true, message: 'Password has been reset successfully' };
     }
 
-    sendResetCode(email: string): { success: boolean; message: string } {
-        console.log('🔐 AuthService: sendResetCode called with email:', email);
+    sendResetCode(email: string): Observable<{ success: boolean; message: string }> {
         const users = this.getUsers();
         const user = users.find(u => u.email === email);
 
         if (!user) {
-            console.log('❌ AuthService: User not found');
-            return { success: false, message: 'Email address not found' };
+            return of({ success: false, message: 'Email address not found' }).pipe(delay(500));
         }
 
-        const code = Math.floor(1000 + Math.random() * 9000).toString();
-        this.resetCodes.set(email, code);
-        console.log('✅ AuthService: Generated code:', code, 'for user:', user.name);
-
-        // Simulate sending email
-        console.log('⏰ AuthService: Scheduling notification in 1.5 seconds...');
-        setTimeout(() => {
-            console.log('📧 AuthService: Calling notificationService.showEmail NOW');
-            this.notificationService.showEmail(
-                'New Email: Password Reset Request',
-                `Hi ${user.name},<br><br>Your verification code for MoveNest is: <b>${code}</b><br><br>If you didn't request this, please ignore this email.`
-            );
-        }, 1500);
-
-        return { success: true, message: 'Verification code sent to your email' };
+        return this.http.post<{ success: boolean; message: string }>(`${this.API_URL}/send-reset-code`, {
+            email,
+            userName: user.name
+        }).pipe(
+            tap(() => this.notificationService.success('Email sent! Check your inbox.')),
+            catchError(error => {
+                console.error('Failed to send reset code', error);
+                const msg = error.error?.message || 'Failed to send verify email';
+                this.notificationService.error(msg);
+                return of({ success: false, message: msg });
+            })
+        );
     }
 
-    verifyResetCode(email: string, code: string): boolean {
-        return this.resetCodes.get(email) === code;
+    verifyResetCode(email: string, code: string): Observable<boolean> {
+        return this.http.post<{ success: boolean; message: string }>(`${this.API_URL}/verify-code`, {
+            email,
+            code
+        }).pipe(
+            map(response => response.success),
+            catchError(() => of(false))
+        );
     }
 
     private generateId(): string {
