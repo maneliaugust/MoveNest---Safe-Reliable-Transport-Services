@@ -2,11 +2,22 @@ const { Resend } = require('resend');
 
 class EmailService {
     constructor() {
-        this.resend = new Resend(process.env.RESEND_API_KEY);
+        const apiKey = process.env.RESEND_API_KEY;
+        if (apiKey) {
+            this.resend = new Resend(apiKey);
+        } else {
+            console.warn('⚠️ RESEND_API_KEY not found. Email service will be mocked.');
+            this.resend = null;
+        }
         this.fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
     }
 
     async sendPasswordResetEmail(toEmail, userName, verificationCode) {
+        if (!this.resend) {
+            console.log(`📝 [MOCK EMAIL] Password Reset Code for ${toEmail}: ${verificationCode}`);
+            return { success: true, data: { id: 'mock_email_id' } };
+        }
+
         try {
             const { data, error } = await this.resend.emails.send({
                 from: this.fromEmail,

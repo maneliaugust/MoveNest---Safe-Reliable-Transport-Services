@@ -132,6 +132,67 @@ app.post('/api/auth/clear-reset-code', (req, res) => {
     }
 });
 
+// In-memory storage for bookings (in production, use database)
+let bookings = [];
+
+// Get all bookings
+app.get('/api/bookings', (req, res) => {
+    res.json(bookings);
+});
+
+// Create new booking
+app.post('/api/bookings', async (req, res) => {
+    try {
+        const bookingData = req.body;
+
+        const newBooking = {
+            ...bookingData,
+            id: bookingData.id || Math.random().toString(36).substr(2, 9),
+            status: 'pending',
+            timestamp: new Date(),
+            // Ensure these fields exist even if not provided
+            paymentMethod: bookingData.paymentMethod || 'cash',
+            paymentStatus: bookingData.paymentStatus || 'unpaid'
+        };
+
+        bookings.unshift(newBooking); // Add to beginning of array
+
+        console.log('✅ New booking created:', newBooking.id);
+
+        // Send email notification if email is provided
+        // Note: You might want to implement a specific email template for new bookings
+        // if (bookingData.email) {
+        //     await emailService.sendBookingConfirmation(bookingData.email, newBooking);
+        // }
+
+        res.status(201).json(newBooking);
+    } catch (error) {
+        console.error('❌ Error creating booking:', error);
+        res.status(500).json({ success: false, message: 'Failed to create booking' });
+    }
+});
+
+// Update booking status
+app.patch('/api/bookings/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const bookingIndex = bookings.findIndex(b => b.id === id);
+    if (bookingIndex === -1) {
+        return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    bookings[bookingIndex].status = status;
+    res.json(bookings[bookingIndex]);
+});
+
+// Delete booking
+app.delete('/api/bookings/:id', (req, res) => {
+    const { id } = req.params;
+    bookings = bookings.filter(b => b.id !== id);
+    res.json({ success: true, message: 'Booking deleted' });
+});
+
 // Start server
 app.listen(PORT, () => {
     console.log(`🚀 MoveNest Backend API running on http://localhost:${PORT}`);

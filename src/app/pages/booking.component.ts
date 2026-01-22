@@ -193,14 +193,20 @@ export class BookingComponent implements OnInit {
     onSubmit(event: Event) {
         event.preventDefault();
 
-        const newBooking = this.bookingService.addBooking(this.bookingData);
+        this.bookingService.addBooking(this.bookingData).subscribe({
+            next: (newBooking) => {
+                console.log('Booking Submitted:', newBooking);
+                this.submitted = true;
 
-        console.log('Booking Submitted:', this.bookingData);
-        this.submitted = true;
-
-        // Redirect to payment
-        setTimeout(() => {
-            this.router.navigate(['/payment', newBooking.id]);
-        }, 1500);
+                // Redirect to payment
+                setTimeout(() => {
+                    this.router.navigate(['/payment', newBooking.id]);
+                }, 1500);
+            },
+            error: (error) => {
+                console.error('Error creating booking:', error);
+                // Handle error (show message to user)
+            }
+        });
     }
 }

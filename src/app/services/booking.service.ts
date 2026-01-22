@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 
 export interface Booking {
     id: string;
@@ -23,79 +24,76 @@ export interface Booking {
 export class BookingService {
     private bookingsSubject = new BehaviorSubject<Booking[]>([]);
     bookings$ = this.bookingsSubject.asObservable();
-    private readonly STORAGE_KEY = 'movenest_bookings';
+    private readonly API_URL = 'http://localhost:3000/api/bookings';
 
-    constructor() {
+    constructor(private http: HttpClient) {
         this.loadBookings();
     }
 
     private loadBookings() {
-        const stored = localStorage.getItem(this.STORAGE_KEY);
-        if (stored) {
-            try {
-                const bookings = JSON.parse(stored);
+        this.http.get<Booking[]>(this.API_URL).subscribe({
+            next: (bookings) => {
                 this.bookingsSubject.next(bookings);
-            } catch (e) {
-                console.error('Error parsing bookings', e);
-                this.bookingsSubject.next([]);
+            },
+            error: (error) => {
+                console.error('Error loading bookings:', error);
             }
-        }
+        });
     }
 
     getBookings(): Booking[] {
         return this.bookingsSubject.getValue();
     }
 
-    addBooking(bookingData: Omit<Booking, 'id' | 'status' | 'timestamp'>) {
-        const newBooking: Booking = {
-            ...bookingData,
-            id: Math.random().toString(36).substr(2, 9),
-            status: 'pending',
-            timestamp: new Date()
-        };
-
-        const currentBookings = this.bookingsSubject.getValue();
-        const updatedBookings = [newBooking, ...currentBookings];
-
-        this.bookingsSubject.next(updatedBookings);
-        this.saveBookings(updatedBookings);
-
-        return newBooking;
+    addBooking(bookingData: Omit<Booking, 'id' | 'status' | 'timestamp'>): Observable<Booking> {
+        return this.http.post<Booking>(this.API_URL, bookingData).pipe(
+            tap(newBooking => {
+                const currentBookings = this.bookingsSubject.getValue();
+                this.bookingsSubject.next([newBooking, ...currentBookings]);
+            })
+        );
     }
 
     deleteBooking(id: string) {
-        const currentBookings = this.bookingsSubject.getValue();
-        const updatedBookings = currentBookings.filter(b => b.id !== id);
-
-        this.bookingsSubject.next(updatedBookings);
-        this.saveBookings(updatedBookings);
+        this.http.delete(`${this.API_URL}/${id}`).subscribe({
+            next: () => {
+                const currentBookings = this.bookingsSubject.getValue();
+                const updatedBookings = currentBookings.filter(b => b.id !== id);
+                this.bookingsSubject.next(updatedBookings);
+            },
+            error: (error) => console.error('Error deleting booking:', error)
+        });
     }
 
     updateStatus(id: string, status: 'pending' | 'confirmed' | 'completed') {
-        const currentBookings = this.bookingsSubject.getValue();
-        const updatedBookings = currentBookings.map(b =>
-            b.id === id ? { ...b, status } : b
-        );
-
-        this.bookingsSubject.next(updatedBookings);
-        this.saveBookings(updatedBookings);
+        this.http.patch<Booking>(`${this.API_URL}/${id}/status`, { status }).subscribe({
+            next: (updatedBooking) => {
+                const currentBookings = this.bookingsSubject.getValue();
+                const updatedBookings = currentBookings.map(b =>
+                    b.id === id ? updatedBooking : b
+                );
+                this.bookingsSubject.next(updatedBookings);
+            },
+            error: (error) => console.error('Error updating status:', error)
+        });
     }
 
     updatePayment(id: string, paymentMethod: 'cash' | 'card', paymentStatus: 'pending' | 'paid') {
+        // Implement if backend endpoint exists, for now just local update or add endpoint if needed
+        // For this iteration, we didn't add a specific payment update endpoint, 
+        // so we can either add it to backend or just update local state if it's UI only.
+        // Assuming visual update for now or future implementation.
+        console.warn('Backend update for payment not implemented yet');
+
+        // Optimistic update
         const currentBookings = this.bookingsSubject.getValue();
         const updatedBookings = currentBookings.map(b =>
             b.id === id ? { ...b, paymentMethod, paymentStatus } : b
         );
-
         this.bookingsSubject.next(updatedBookings);
-        this.saveBookings(updatedBookings);
     }
 
     getBookingById(id: string): Booking | undefined {
         return this.bookingsSubject.getValue().find(b => b.id === id);
-    }
-
-    private saveBookings(bookings: Booking[]) {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(bookings));
     }
 }
