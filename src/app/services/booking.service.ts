@@ -18,13 +18,15 @@ export interface Booking {
     timestamp: Date;
 }
 
+import { environment } from '../../environments/environment';
+
 @Injectable({
     providedIn: 'root'
 })
 export class BookingService {
     private bookingsSubject = new BehaviorSubject<Booking[]>([]);
     bookings$ = this.bookingsSubject.asObservable();
-    private readonly API_URL = 'http://localhost:3000/api/bookings';
+    private readonly API_URL = environment.apiUrl + '/bookings';
 
     constructor(private http: HttpClient) {
         this.loadBookings();
