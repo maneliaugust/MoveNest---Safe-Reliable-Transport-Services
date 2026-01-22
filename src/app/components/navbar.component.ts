@@ -74,7 +74,15 @@ import { Router } from '@angular/router';
                 <li><a routerLink="/quote" (click)="closeMenu()" routerLinkActive="active">GET QUOTE</a></li>
                 <li><a routerLink="/booking" (click)="closeMenu()" routerLinkActive="active">BOOK NOW</a></li>
                 <li><a routerLink="/contact" (click)="closeMenu()" routerLinkActive="active">CONTACT</a></li>
-                <li><a routerLink="/login" (click)="closeMenu()" routerLinkActive="active">LOGIN</a></li>
+                <li *ngIf="!isAuthenticated"><a routerLink="/login" (click)="closeMenu()" routerLinkActive="active">LOGIN</a></li>
+                
+                <ng-container *ngIf="isAuthenticated">
+                    <li class="mobile-divider"></li>
+                    <li class="user-greeting">Hi, {{userName}}</li>
+                    <li><a routerLink="/settings" (click)="closeMenu()" routerLinkActive="active">SETTINGS</a></li>
+                    <li *ngIf="isAdmin"><a routerLink="/admin" (click)="closeMenu()" routerLinkActive="active">ADMIN DASHBOARD</a></li>
+                    <li><a (click)="logout(); closeMenu()" class="logout-link">LOGOUT</a></li>
+                </ng-container>
             </ul>
         </div>
     </div>
@@ -130,14 +138,19 @@ import { Router } from '@angular/router';
         border: none;
         cursor: pointer;
         flex-direction: column;
-        gap: 5px;
+        justify-content: center;
+        gap: 6px;
         z-index: 1001;
+        width: 40px;
+        height: 40px;
+        padding: 5px;
     }
     .bar {
-        width: 25px;
+        width: 100%;
         height: 3px;
         background-color: var(--primary-color);
         transition: 0.3s;
+        border-radius: 4px;
     }
 
     /* Mobile Overlay & Menu */
@@ -221,6 +234,23 @@ import { Router } from '@angular/router';
     .mobile-nav-links a:hover, .mobile-nav-links a.active {
         color: var(--accent-color);
         padding-left: 10px;
+    }
+    
+    .mobile-divider {
+        height: 1px;
+        background: rgba(255,255,255,0.1);
+        margin: 0.5rem 0;
+    }
+    
+    .user-greeting {
+        color: rgba(255,255,255,0.5);
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+        padding-left: 0;
+    }
+    
+    .logout-link {
+        color: #ff6b6b !important;
     }
 
     /* User Menu */

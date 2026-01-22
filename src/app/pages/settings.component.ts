@@ -311,8 +311,8 @@ import { User, SavedAddress } from '../models/user.model';
                                         <strong>{{ illustrativeKm > 0 ? formatTripDistance(illustrativeKm) : '---' }}</strong>
                                     </div>
                                 </div>
-                                <div class="metric" *ngIf="illustrativePickup && illustrativeDropoff">
-                                    <a [href]="'https://www.google.com/maps/dir/' + illustrativePickup + '/' + illustrativeDropoff" target="_blank" class="maps-link">
+                                <div class="metric" *ngIf="illustrativePickup || illustrativeDropoff">
+                                    <a [href]="getMapsUrl()" target="_blank" class="maps-link">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                         Open in Google Maps
                                     </a>
@@ -833,16 +833,70 @@ import { User, SavedAddress } from '../models/user.model';
     }
 
     @media (max-width: 768px) {
+        .settings-section {
+            padding-top: 6rem;
+            padding-bottom: 2rem;
+        }
+
+        .container {
+            padding: 0 1rem;
+        }
+
         .settings-content {
             grid-template-columns: 1fr;
+            gap: 1.5rem;
         }
 
         .settings-sidebar {
             position: static;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .tab-btn {
+            margin-bottom: 0;
+            padding: 0.8rem;
+            font-size: 0.85rem;
+            justify-content: center;
+            flex-direction: column;
+            gap: 0.4rem;
+            text-align: center;
+            height: 100%;
+        }
+
+        .tab-btn i {
+            font-size: 1.2rem;
+            width: auto;
+        }
+
+        .logout-btn {
+            margin-top: 0;
+            border-top: none;
+            background: rgba(220, 53, 69, 0.05);
+            color: #dc3545;
+        }
+
+        .settings-main {
+            padding: 1.5rem;
         }
 
         .pricing-grid {
             grid-template-columns: 1fr;
+        }
+
+        .nav-metrics {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .maps-link {
+            justify-content: center;
+            padding-top: 0.8rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            width: 100%;
         }
     }
     `]
@@ -994,9 +1048,15 @@ export class SettingsComponent implements OnInit {
         });
 
         this.navSettingsForm.patchValue({
-            distanceUnit: settings.distanceUnit,
             mapProvider: settings.mapProvider
         });
+
+        // Initialize with demo data if empty
+        if (!this.illustrativePickup) {
+            this.illustrativePickup = 'Sandton City';
+            this.illustrativeDropoff = 'O.R. Tambo International Airport';
+            this.calculateDistance();
+        }
     }
 
     saveProfile() {
@@ -1228,26 +1288,6 @@ export class SettingsComponent implements OnInit {
         // If we already have illustrative locations, show them immediately
         if (this.illustrativePickup && this.illustrativeDropoff) {
             this.updateMapMarkers();
-        } else {
-            // Default view markers (Pretoria/Sandton)
-            const pickup: [number, number] = [-25.7479, 28.1878];
-            const dropoff: [number, number] = [-26.1076, 28.0567];
-
-            const pickupMarker = L.marker(pickup).addTo(this.map)
-                .bindPopup('Default Pickup: Pretoria');
-
-            const dropoffMarker = L.marker(dropoff).addTo(this.map)
-                .bindPopup('Default Drop-off: Sandton');
-
-            this.markers.push(pickupMarker, dropoffMarker);
-
-            this.polyline = L.polyline([pickup, dropoff], {
-                color: '#ff6b35',
-                weight: 2,
-                opacity: 0.8
-            }).addTo(this.map);
-
-            this.map.fitBounds(this.polyline.getBounds(), { padding: [50, 50] });
         }
     }
 
@@ -1290,6 +1330,20 @@ export class SettingsComponent implements OnInit {
                 }
             });
         }
+    }
+
+    getMapsUrl(): string {
+        const origin = encodeURIComponent(this.illustrativePickup || '');
+        const destination = encodeURIComponent(this.illustrativeDropoff || '');
+
+        if (origin && destination) {
+            return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+        } else if (origin) {
+            return `https://www.google.com/maps/search/?api=1&query=${origin}`;
+        } else if (destination) {
+            return `https://www.google.com/maps/search/?api=1&query=${destination}`;
+        }
+        return 'https://www.google.com/maps';
     }
 
     logout() {

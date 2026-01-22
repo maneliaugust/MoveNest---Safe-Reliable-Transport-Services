@@ -262,6 +262,21 @@ import { MessageService, Message } from '../services/message.service';
       .table-responsive {
         overflow-x: auto;
       }
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+      }
+      .stats {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .stats span {
+        margin-left: 0;
+        text-align: center;
+      }
     }
   `]
 })
