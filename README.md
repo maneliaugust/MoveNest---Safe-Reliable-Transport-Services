@@ -55,7 +55,7 @@ The backend API will be available at `http://localhost:3000`.
 npm install
 npm start
 ```
-Open your browser and navigate to `http://localhost:4200/`.
+Open your browser and navigate to https://6971be94ff0879407b1ff53f--fluffy-kleicha-737f92.netlify.app/
 
 ## 📂 Project Structure
 
