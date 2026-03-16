@@ -1,59 +1,81 @@
-# MoveNest
+# MoveNest - Safe & Reliable Transport Services
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.1.0.
+MoveNest is a modern, full-stack application designed to streamline the process of booking and managing moving services. Built with a focus on reliability and user experience, it provides a seamless interface for both customers and administrators.
 
-## Development server
+## 🚀 Key Features
 
-To start a local development server, run:
+-   **Seamless Booking**: Intuitive multi-step booking process for transport services.
+-   **Instant Quotes**: Get quick estimates based on your moving requirements.
+-   **Admin Dashboard**: Centralized hub for managing bookings, fleet, and system settings.
+-   **Real-time Notifications**: Email confirmations and password reset flows powered by Resend.
+-   **Interactive Maps**: Integrated Leaflet maps for precise location selection.
+-   **Secure Authentication**: Role-based access control with protected routes for administrators.
+-   **Fleet Showcase**: Detailed view of available vehicles and service capabilities.
 
+## 🛠️ Tech Stack
+
+### Frontend
+-   **Framework**: [Angular 21](https://angular.dev/)
+-   **Maps**: [Leaflet](https://leafletjs.com/)
+-   **Testing**: [Vitest](https://vitest.dev/)
+-   **Styling**: Vanilla CSS with modern aesthetics.
+
+### Backend
+-   **Runtime**: Node.js
+-   **Framework**: Express
+-   **Email Service**: [Resend](https://resend.com/)
+-   **Environment Management**: dotenv
+
+## 🏁 Getting Started
+
+### Prerequisites
+-   Node.js (LTS version recommended)
+-   npm
+
+### Configuration
+
+The backend requires a Resend API key for email functionality.
+1.  Navigate to the `backend` directory.
+2.  Copy `.env.example` to `.env`.
+3.  Add your `RESEND_API_KEY` to the `.env` file.
+
+### Installation & Running
+
+#### 1. Backend Setup
 ```bash
-ng serve
+cd backend
+npm install
+npm start
 ```
+The backend API will be available at `http://localhost:3000`.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
+#### 2. Frontend Setup
 ```bash
-ng generate component component-name
+# From the root directory
+npm install
+npm start
 ```
+Open your browser and navigate to `http://localhost:4200/`.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## 📂 Project Structure
 
-```bash
-ng generate --help
-```
+-   `src/app/pages/`: Core application views (Home, Booking, Admin, etc.).
+-   `src/app/components/`: Reusable UI components (Navbar, Footer, Notification).
+-   `src/app/services/`: Frontend business logic and API interaction details.
+-   `backend/`: Node.js/Express server and service implementations.
+-   `backend/services/`: Backend logic for email and third-party integrations.
 
-## Building
+## 🧪 Testing
 
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
+To execute unit tests for the frontend:
 ```bash
 ng test
 ```
 
-## Running end-to-end tests
+## 🏗️ Building for Production
 
-For end-to-end (e2e) testing, run:
-
+To create a production build of the Angular application:
 ```bash
-ng e2e
+ng build
 ```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+The optimized artifacts will be stored in the `dist/` directory.
