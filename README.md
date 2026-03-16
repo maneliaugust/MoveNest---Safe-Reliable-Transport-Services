@@ -47,7 +47,6 @@ cd backend
 npm install
 npm start
 ```
-The backend API will be available at `http://localhost:3000`.
 
 #### 2. Frontend Setup
 ```bash
